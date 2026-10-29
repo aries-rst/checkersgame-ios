@@ -1,0 +1,35 @@
+name: CheckersGame
+options:
+  bundleIdPrefix: com.aries-rst
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  base:
+    DEVELOPMENT_TEAM: UWM7LPNBH6
+    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.0"
+targets:
+  CheckersGame:
+    type: application
+    platform: iOS
+    sources:
+      - CheckersGame
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.aries-rst.checkersgame.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1,2"
+    info:
+      path: CheckersGame/Info.plist
+      properties:
+        CFBundleDisplayName: Checkers Club
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
