@@ -3,10 +3,14 @@ options:
   bundleIdPrefix: com.aries-rst
   deploymentTarget:
     iOS: "16.0"
+packages:
+  GoogleMobileAds:
+    url: https://github.com/googleads/swift-package-manager-google-mobile-ads.git
+    from: "13.0.0"
 settings:
   base:
     DEVELOPMENT_TEAM: UWM7LPNBH6
-    CURRENT_PROJECT_VERSION: "2"
+    CURRENT_PROJECT_VERSION: "3"
     MARKETING_VERSION: "1.0"
 targets:
   CheckersGame:
@@ -14,6 +18,9 @@ targets:
     platform: iOS
     sources:
       - CheckersGame
+    dependencies:
+      - package: GoogleMobileAds
+        product: GoogleMobileAds
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.aries-rst.checkersgame.app
@@ -37,3 +44,7 @@ targets:
         NSBonjourServices:
           - "_ar-checkers._tcp"
           - "_ar-checkers._udp"
+        GADApplicationIdentifier: "ca-app-pub-9638598348702189~6169461056"
+        NSUserTrackingUsageDescription: "This identifier is used to show you more relevant ads. / Этот идентификатор используется для показа более релевантной рекламы."
+        SKAdNetworkItems:
+          - SKAdNetworkIdentifier: cstr6suwn9.skadnetwork
