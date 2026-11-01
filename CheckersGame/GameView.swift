@@ -10,6 +10,7 @@ struct GameView: View {
 @ObservedObject private var lang = AppLang.shared
 @StateObject private var engine = CheckersEngine()
 @State private var isBotThinking = false
+@State private var statsRecorded = false
 @Environment(\.dismiss) private var dismiss
 
 var multiplayer: MultiplayerManager? = nil
@@ -35,6 +36,9 @@ Spacer()
 }
 .onChange(of: engine.turn) { _ in
 botTurnIfNeeded()
+}
+.onChange(of: engine.winner) { _ in
+recordStatsIfFinished()
 }
 .onAppear {
 setupMultiplayerReceiver()
@@ -192,7 +196,17 @@ isBotThinking = false
 
 private func resetGame() {
 engine.reset()
+statsRecorded = false
 multiplayer?.send(NetMessage(reset: true))
+}
+
+/// Only the human's own vs-bot result is scored — not an online match
+/// against another person, where "won" isn't a meaningful personal stat
+/// in the same way (and the local-color/engine-color mapping differs).
+private func recordStatsIfFinished() {
+guard multiplayer == nil, let winner = engine.winner, !statsRecorded else { return }
+statsRecorded = true
+GameStats.record(won: winner == .white)
 }
 
 private func setupMultiplayerReceiver() {
