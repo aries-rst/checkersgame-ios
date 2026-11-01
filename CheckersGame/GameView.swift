@@ -7,6 +7,7 @@ var reset: Bool = false
 
 struct GameView: View {
 @ObservedObject var store: StoreManager
+@ObservedObject private var lang = AppLang.shared
 @StateObject private var engine = CheckersEngine()
 @State private var isBotThinking = false
 @Environment(\.dismiss) private var dismiss
@@ -38,24 +39,24 @@ botTurnIfNeeded()
 .onAppear {
 setupMultiplayerReceiver()
 }
-.alert("Игра окончена", isPresented: Binding(get: { engine.winner != nil }, set: { _ in })) {
-Button("Новая игра") { resetGame() }
-Button("В меню") { dismiss() }
+.alert(t("Game Over", "Игра окончена"), isPresented: Binding(get: { engine.winner != nil }, set: { _ in })) {
+Button(t("New Game", "Новая игра")) { resetGame() }
+Button(t("Menu", "В меню")) { dismiss() }
 } message: {
-Text(engine.winner == .white ? "Белые победили!" : "Чёрные победили!")
+Text(engine.winner == .white ? t("White wins!", "Белые победили!") : t("Black wins!", "Чёрные победили!"))
 }
 }
 
 private var header: some View {
 HStack {
-Text("Чёрные: \(engine.pieceCount.black)")
+Text("\(t("Black", "Чёрные")): \(engine.pieceCount.black)")
 .foregroundStyle(cream)
 Spacer()
 Text(headerTurnText)
 .font(.headline)
 .foregroundStyle(brass)
 Spacer()
-Text("Белые: \(engine.pieceCount.white)")
+Text("\(t("White", "Белые")): \(engine.pieceCount.white)")
 .foregroundStyle(cream)
 }
 .font(.subheadline)
@@ -64,9 +65,9 @@ Text("Белые: \(engine.pieceCount.white)")
 
 private var headerTurnText: String {
 if multiplayer != nil {
-return engine.turn == localColor ? "Ваш ход" : "Ход соперника"
+return engine.turn == localColor ? t("Your Turn", "Ваш ход") : t("Opponent's Turn", "Ход соперника")
 }
-return engine.turn == .white ? "Ход: Белые" : "Ход: Чёрные (бот)"
+return engine.turn == .white ? t("Turn: White", "Ход: Белые") : t("Turn: Black (bot)", "Ход: Чёрные (бот)")
 }
 
 private var boardView: some View {
@@ -138,7 +139,7 @@ HStack(spacing: 16) {
 Button {
 resetGame()
 } label: {
-Label("Новая игра", systemImage: "arrow.counterclockwise")
+Label(t("New Game", "Новая игра"), systemImage: "arrow.counterclockwise")
 }
 Spacer()
 if let mp = multiplayer {
@@ -146,7 +147,7 @@ Text(multiplayerStatusText(mp))
 .font(.caption)
 .foregroundStyle(cream.opacity(0.6))
 } else if !store.isPremium {
-Text("Реклама в бесплатной версии")
+Text(t("Ads shown in the free version", "Реклама в бесплатной версии"))
 .font(.caption)
 .foregroundStyle(cream.opacity(0.5))
 }
@@ -157,9 +158,9 @@ Text("Реклама в бесплатной версии")
 
 private func multiplayerStatusText(_ mp: MultiplayerManager) -> String {
 if case .connected(let name) = mp.state {
-return "Подключено: \(name)"
+return "\(t("Connected", "Подключено")): \(name)"
 }
-return "Соединение прервано"
+return t("Connection lost", "Соединение прервано")
 }
 
 private func handleTap(_ sq: Square) {
@@ -211,6 +212,7 @@ engine.apply(move)
 
 struct PremiumView: View {
 @ObservedObject var store: StoreManager
+@ObservedObject private var lang = AppLang.shared
 @Environment(\.dismiss) private var dismiss
 
 private let brass = Color(red: 0.79, green: 0.59, blue: 0.17)
@@ -227,20 +229,20 @@ Text("Checkers Club Premium")
 .font(.title2.bold())
 
 VStack(alignment: .leading, spacing: 12) {
-featureRow("Без рекламы")
-featureRow("Локальный мультиплеер по Wi-Fi/Bluetooth")
-featureRow("Разовая покупка — навсегда")
+featureRow(t("No ads", "Без рекламы"))
+featureRow(t("Local multiplayer over Wi-Fi/Bluetooth", "Локальный мультиплеер по Wi-Fi/Bluetooth"))
+featureRow(t("One-time purchase — forever", "Разовая покупка — навсегда"))
 }
 .padding(.horizontal, 24)
 
 if store.isPremium {
-Label("Premium уже активен", systemImage: "checkmark.seal.fill")
+Label(t("Premium already active", "Premium уже активен"), systemImage: "checkmark.seal.fill")
 .foregroundStyle(.green)
 } else {
 Button {
 Task { await store.purchasePremium() }
 } label: {
-Text("Купить за \(store.priceText)")
+Text("\(t("Buy for", "Купить за")) \(store.priceText)")
 .fontWeight(.bold)
 .frame(maxWidth: .infinity)
 .padding()
@@ -250,7 +252,7 @@ Text("Купить за \(store.priceText)")
 }
 .padding(.horizontal, 24)
 
-Button("Восстановить покупки") {
+Button(t("Restore Purchases", "Восстановить покупки")) {
 Task { await store.restorePurchases() }
 }
 .font(.footnote)
@@ -264,7 +266,7 @@ Spacer()
 }
 .toolbar {
 ToolbarItem(placement: .cancellationAction) {
-Button("Закрыть") { dismiss() }
+Button(t("Close", "Закрыть")) { dismiss() }
 }
 }
 }
