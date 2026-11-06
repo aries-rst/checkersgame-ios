@@ -11,6 +11,8 @@ struct GameView: View {
     @StateObject private var engine: CheckersEngine
     @State private var isBotThinking = false
     @State private var statsRecorded = false
+    @State private var leavingGame = false
+    @State private var hintTarget: Square? = nil
     @Environment(\.dismiss) private var dismiss
 
     var multiplayer: MultiplayerManager? = nil
@@ -52,6 +54,7 @@ struct GameView: View {
             .padding(.top, 12)
         }
         .onChange(of: engine.turn) { _ in
+            hintTarget = nil
             botTurnIfNeeded()
         }
         .onChange(of: engine.winner) { _ in
@@ -60,13 +63,22 @@ struct GameView: View {
         .onAppear {
             setupMultiplayerReceiver()
         }
-        .alert(t("Game Over", "Игра окончена"), isPresented: Binding(get: { engine.winner != nil }, set: { _ in })) {
-            Button(t("New Game", "Новая игра")) { resetGame() }
-            Button(t("Menu", "В меню")) {
-                if multiplayer == nil, !store.isPremium {
-                    AdManager.shared.showInterstitial(from: AdManager.rootViewController())
+        .alert(t("Game Over", "Игра окончена"), isPresented: Binding(get: { engine.winner != nil && !leavingGame }, set: { _ in })) {
+            Button(t("New Game", "Новая игра")) {
+                if multiplayer == nil {
+                    leavingGame = true
+                    Ads.afterGame { resetGame() }
+                } else {
+                    resetGame()
                 }
-                dismiss()
+            }
+            Button(t("Menu", "В меню")) {
+                if multiplayer == nil {
+                    leavingGame = true
+                    Ads.afterGame { dismiss() }
+                } else {
+                    dismiss()
+                }
             }
         } message: {
             Text(engine.winner == .white ? t("White wins!", "Белые победили!") : t("Black wins!", "Чёрные победили!"))
@@ -138,6 +150,8 @@ struct GameView: View {
         Group {
             if engine.selectedSquare == sq {
                 Rectangle().fill(brass.opacity(0.45))
+            } else if hintTarget == sq {
+                Circle().stroke(brass, lineWidth: 4).padding(6)
             } else if engine.legalMovesForSelection.contains(where: { $0.path.last == sq }) {
                 Circle().fill(brass.opacity(0.55)).padding(14)
             }
@@ -172,10 +186,13 @@ struct GameView: View {
                 Text(multiplayerStatusText(mp))
                     .font(.caption)
                     .foregroundStyle(cream.opacity(0.6))
-            } else if !store.isPremium {
-                Text(t("Ads shown in the free version", "Реклама в бесплатной версии"))
-                    .font(.caption)
-                    .foregroundStyle(cream.opacity(0.5))
+            } else {
+                Button {
+                    requestHint()
+                } label: {
+                    Label(t("Hint", "Подсказка"), systemImage: store.isPremium ? "lightbulb.fill" : "play.rectangle.fill")
+                }
+                .disabled(engine.winner != nil || engine.turn != .white || isBotThinking)
             }
         }
         .foregroundStyle(cream)
@@ -191,6 +208,7 @@ struct GameView: View {
 
     private func handleTap(_ sq: Square) {
         guard engine.winner == nil, !isBotThinking else { return }
+        hintTarget = nil
         if let mp = multiplayer {
             guard engine.turn == localColor else { return }
             let pendingMove = engine.legalMovesForSelection.first(where: { $0.path.last == sq })
@@ -216,9 +234,43 @@ struct GameView: View {
         }
     }
 
+    /// Hint for the human (white) in vs-bot games: free tier watches a
+    /// rewarded ad first, Premium gets it instantly.
+    private func requestHint() {
+        guard multiplayer == nil, engine.winner == nil, engine.turn == .white, !isBotThinking else { return }
+        Ads.rewardedHint {
+            guard engine.winner == nil, engine.turn == .white, let mv = bestHintMove(), let start = mv.path.first else { return }
+            engine.selectedSquare = nil
+            engine.tap(start)
+            hintTarget = mv.path.last
+        }
+    }
+
+    /// One-ply look-ahead: prefer bigger captures, promotion and wins, and
+    /// avoid moves that let the bot capture back.
+    private func bestHintMove() -> Move? {
+        let all = engine.moves(for: .white)
+        guard !all.isEmpty else { return nil }
+        func score(_ mv: Move) -> Int {
+            let sim = CheckersEngine(variant: variant)
+            sim.board = engine.board
+            sim.turn = .white
+            sim.apply(mv)
+            var s = mv.captured.count * 10 + (mv.promotesToKing ? 6 : 0)
+            if sim.winner == .white { s += 100 }
+            if let worst = sim.moves(for: .black).map({ $0.captured.count }).max(), worst > 0 {
+                s -= worst * 9
+            }
+            return s
+        }
+        return all.max { score($0) < score($1) }
+    }
+
     private func resetGame() {
         engine.reset()
         statsRecorded = false
+        leavingGame = false
+        hintTarget = nil
         multiplayer?.send(NetMessage(reset: true))
     }
 
@@ -266,6 +318,7 @@ struct PremiumView: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     featureRow(t("No ads", "Без рекламы"))
+                    featureRow(t("Hints without ads", "Подсказки без рекламы"))
                     featureRow(t("Local multiplayer over Wi-Fi/Bluetooth", "Локальный мультиплеер по Wi-Fi/Bluetooth"))
                     featureRow(t("One-time purchase — forever", "Разовая покупка — навсегда"))
                 }

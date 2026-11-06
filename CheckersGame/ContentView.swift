@@ -64,6 +64,7 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear { Ads.start() }
     }
 
     // MARK: - Header

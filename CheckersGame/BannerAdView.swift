@@ -2,17 +2,24 @@ import SwiftUI
 import GoogleMobileAds
 import UIKit
 
-/// Adaptive anchored banner for the free tier. Root view controller is
-/// resolved via `AdManager.rootViewController()` (iOS 15+ safe, avoids the
-/// deprecated `keyWindow`).
-struct BannerAdView: UIViewRepresentable {
-    let adUnitID = "ca-app-pub-9638598348702189/6336982017"
+/// Standard 320×50 banner for the free tier. Renders nothing until the SDK
+/// has started, and never for Premium owners.
+struct BannerAdView: View {
+    @ObservedObject private var state = AdsState.shared
 
+    var body: some View {
+        if state.ready && !Ads.isPremium {
+            BannerContainer().frame(width: 320, height: 50)
+        }
+    }
+}
+
+private struct BannerContainer: UIViewRepresentable {
     func makeUIView(context: Context) -> BannerView {
         let banner = BannerView(adSize: AdSizeBanner)
-        banner.adUnitID = adUnitID
-        banner.rootViewController = AdManager.rootViewController()
-        banner.load(Request())
+        banner.adUnitID = AdUnitIds.banner
+        banner.rootViewController = Ads.topViewController()
+        banner.load(GoogleMobileAds.Request())
         return banner
     }
 
